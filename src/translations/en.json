@@ -420,7 +420,7 @@
   "ModalMissingInformation.fixEmailLinkText": "Fix it.",
   "ModalMissingInformation.gotoPaymentSettings": "Add payment details",
   "ModalMissingInformation.missingStripeAccountText": "You have listings but your payment details are missing. Your listings cannot be booked until the details are saved.",
-  "ModalMissingInformation.missingStripeAccountTitle": "Payment details missing",
+  "ModalMissingInformation. missingStripeAccountTitle": "Payment details missing",
   "ModalMissingInformation.resendEmail": "Didn't get the email? {resendEmailLink}",
   "ModalMissingInformation.resendEmailLinkText": "Resend it.",
   "ModalMissingInformation.resendFailed": "Resending verification email failed. Please try again.",
