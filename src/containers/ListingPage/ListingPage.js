@@ -37,7 +37,6 @@ import {
   LayoutWrapperMain,
   LayoutWrapperFooter,
   Footer,
-  BookingPanel,
 } from '../../components';
 import { TopbarContainer, NotFoundPage } from '../../containers';
 
@@ -51,6 +50,7 @@ import SectionReviews from './SectionReviews';
 import SectionHostMaybe from './SectionHostMaybe';
 import SectionRulesMaybe from './SectionRulesMaybe';
 import SectionMapMaybe from './SectionMapMaybe';
+import OrderPanel from './OrderPanel/OrderPanel'; // ⬅️ NUEVO
 import css from './ListingPage.module.css';
 
 const MIN_LENGTH_FOR_LONG_WORDS_IN_TITLE = 16;
@@ -101,14 +101,16 @@ export class ListingPageComponent extends Component {
     const listingId = new UUID(params.id);
     const listing = getListing(listingId);
 
+    // En el flujo nuevo, values puede traer deliveryType, address, notes, quantity, etc.
+    // Mantenemos bookingDates para compatibilidad con CheckoutPage (aunque no uses calendario).
     const { bookingDates, ...bookingData } = values;
 
     const initialValues = {
       listing,
       bookingData,
       bookingDates: {
-        bookingStart: bookingDates.startDate,
-        bookingEnd: bookingDates.endDate,
+        bookingStart: bookingDates?.startDate || null,
+        bookingEnd: bookingDates?.endDate || null,
       },
       confirmPaymentError: null,
     };
@@ -116,15 +118,14 @@ export class ListingPageComponent extends Component {
     const saveToSessionStorage = !this.props.currentUser;
 
     const routes = routeConfiguration();
-    // Customize checkout page state with current listing and selected bookingDates
     const { setInitialValues } = findRouteByRouteName('CheckoutPage', routes);
 
     callSetInitialValues(setInitialValues, initialValues, saveToSessionStorage);
 
-    // Clear previous Stripe errors from store if there is any
+    // Limpiar errores previos de Stripe
     onInitializeCardPaymentData();
 
-    // Redirect to CheckoutPage
+    // Ir a CheckoutPage
     history.push(
       createResourceLocatorString(
         'CheckoutPage',
@@ -141,11 +142,8 @@ export class ListingPageComponent extends Component {
     if (!currentUser) {
       const state = { from: `${location.pathname}${location.search}${location.hash}` };
 
-      // We need to log in before showing the modal, but first we need to ensure
-      // that modal does open when user is redirected back to this listingpage
       callSetInitialValues(setInitialValues, { enquiryModalOpenForListingId: params.id });
 
-      // signup and return back to listingPage.
       history.push(createResourceLocatorString('SignupPage', routeConfiguration(), {}, {}), state);
     } else {
       this.setState({ enquiryModalOpen: true });
@@ -161,14 +159,10 @@ export class ListingPageComponent extends Component {
     onSendEnquiry(listingId, message.trim())
       .then(txId => {
         this.setState({ enquiryModalOpen: false });
-
-        // Redirect to OrderDetailsPage
-        history.push(
-          createResourceLocatorString('OrderDetailsPage', routes, { id: txId.uuid }, {})
-        );
+        history.push(createResourceLocatorString('OrderDetailsPage', routes, { id: txId.uuid }, {}));
       })
       .catch(() => {
-        // Ignore, error handling in duck file
+        // ignore
       });
   }
 
@@ -219,11 +213,6 @@ export class ListingPageComponent extends Component {
 
     const pendingIsApproved = isPendingApprovalVariant && isApproved;
 
-    // If a /pending-approval URL is shared, the UI requires
-    // authentication and attempts to fetch the listing from own
-    // listings. This will fail with 403 Forbidden if the author is
-    // another user. We use this information to try to fetch the
-    // public listing.
     const pendingOtherUsersListing =
       (isPendingApprovalVariant || isDraftVariant) &&
       showListingError &&
@@ -259,12 +248,26 @@ export class ListingPageComponent extends Component {
     const topbar = <TopbarContainer />;
 
     if (showListingError && showListingError.status === 404) {
-      // 404 listing not found
+      const errorTitle = intl.formatMessage({
+        id: 'ListingPage.errorLoadingListingTitle',
+      });
 
-      return <NotFoundPage />;
+      return (
+        <Page title={errorTitle} scrollingDisabled={scrollingDisabled}>
+          <LayoutSingleColumn className={css.pageRoot}>
+            <LayoutWrapperTopbar>{topbar}</LayoutWrapperTopbar>
+            <LayoutWrapperMain>
+              <p className={css.errorText}>
+                <FormattedMessage id="ListingPage.errorLoadingListingMessage" />
+              </p>
+            </LayoutWrapperMain>
+            <LayoutWrapperFooter>
+              <Footer />
+            </LayoutWrapperFooter>
+          </LayoutSingleColumn>
+        </Page>
+      );
     } else if (showListingError) {
-      // Other error in fetching listing
-
       const errorTitle = intl.formatMessage({
         id: 'ListingPage.errorLoadingListingTitle',
       });
@@ -285,8 +288,6 @@ export class ListingPageComponent extends Component {
         </Page>
       );
     } else if (!currentListing.id) {
-      // Still loading the listing
-
       const loadingTitle = intl.formatMessage({
         id: 'ListingPage.loadingListingTitle',
       });
@@ -309,13 +310,10 @@ export class ListingPageComponent extends Component {
     }
 
     const handleViewPhotosClick = e => {
-      // Stop event from bubbling up to prevent image click handler
-      // trying to open the carousel as well.
       e.stopPropagation();
-      this.setState({
-        imageCarouselOpen: true,
-      });
+      this.setState({ imageCarouselOpen: true });
     };
+
     const authorAvailable = currentListing && currentListing.author;
     const userAndListingAuthorAvailable = !!(currentUser && authorAvailable);
     const isOwnListing =
@@ -325,9 +323,6 @@ export class ListingPageComponent extends Component {
     const currentAuthor = authorAvailable ? currentListing.author : null;
     const ensuredAuthor = ensureUser(currentAuthor);
 
-    // When user is banned or deleted the listing is also deleted.
-    // Because listing can be never showed with banned or deleted user we don't have to provide
-    // banned or deleted display names for the function
     const authorDisplayName = userDisplayNameAsString(ensuredAuthor, '');
 
     const { formattedPrice, priceTitle } = priceData(price, intl);
@@ -346,12 +341,8 @@ export class ListingPageComponent extends Component {
         .map(image => {
           const variants = image.attributes.variants;
           const variant = variants ? variants[variantName] : null;
-
-          // deprecated
-          // for backwards combatility only
           const sizes = image.attributes.sizes;
           const size = sizes ? sizes.find(i => i.name === variantName) : null;
-
           return variant || size;
         })
         .filter(variant => variant != null);
@@ -456,7 +447,9 @@ export class ListingPageComponent extends Component {
                     onManageDisableScrolling={onManageDisableScrolling}
                   />
                 </div>
-                <BookingPanel
+
+                {/* ⬇️ Reemplazo del BookingPanel por OrderPanel */}
+                <OrderPanel
                   className={css.bookingPanel}
                   listing={currentListing}
                   isOwnListing={isOwnListing}
@@ -501,7 +494,6 @@ ListingPageComponent.defaultProps = {
 };
 
 ListingPageComponent.propTypes = {
-  // from withRouter
   history: shape({
     push: func.isRequired,
   }).isRequired,
@@ -510,7 +502,6 @@ ListingPageComponent.propTypes = {
   }).isRequired,
 
   unitType: propTypes.bookingUnitType,
-  // from injectIntl
   intl: intlShape.isRequired,
 
   params: shape({
@@ -603,12 +594,6 @@ const mapDispatchToProps = dispatch => ({
   onInitializeCardPaymentData: () => dispatch(initializeCardPaymentData()),
 });
 
-// Note: it is important that the withRouter HOC is **outside** the
-// connect HOC, otherwise React Router won't rerender any Route
-// components since connect implements a shouldComponentUpdate
-// lifecycle hook.
-//
-// See: https://github.com/ReactTraining/react-router/issues/4671
 const ListingPage = compose(
   withRouter,
   connect(

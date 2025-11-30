@@ -19,32 +19,22 @@ import { Modal, NamedRedirect, Tabs, StripeConnectAccountStatusBox } from '../..
 import { StripeConnectAccountForm } from '../../forms';
 
 import EditListingWizardTab, {
-  AVAILABILITY,
+  // AVAILABILITY,    // ❌ quitado
   DESCRIPTION,
-  FEATURES,
-  POLICY,
+  // FEATURES,        // ❌ quitado
+  // POLICY,          // ❌ quitado
   LOCATION,
   PRICING,
   PHOTOS,
 } from './EditListingWizardTab';
 import css from './EditListingWizard.module.css';
 
-// Show availability calendar only if environment variable availabilityEnabled is true
-const availabilityMaybe = config.enableAvailability ? [AVAILABILITY] : [];
+// En delivery no usamos calendario de disponibilidad
+// const availabilityMaybe = config.enableAvailability ? [AVAILABILITY] : [];
 
-// You can reorder these panels.
-// Note 1: You need to change save button translations for new listing flow
-// Note 2: Ensure that draft listing is created after the first panel
-// and listing publishing happens after last panel.
-export const TABS = [
-  DESCRIPTION,
-  FEATURES,
-  POLICY,
-  LOCATION,
-  PRICING,
-  ...availabilityMaybe,
-  PHOTOS,
-];
+// Orden de pestañas para delivery:
+// Descripción → Precios → Fotos → Ubicación
+export const TABS = [DESCRIPTION, PRICING, PHOTOS, LOCATION];
 
 // Tabs are horizontal in small screens
 const MAX_HORIZONTAL_NAV_SCREEN_WIDTH = 1023;
@@ -56,20 +46,13 @@ const tabLabel = (intl, tab) => {
   let key = null;
   if (tab === DESCRIPTION) {
     key = 'EditListingWizard.tabLabelDescription';
-  } else if (tab === FEATURES) {
-    key = 'EditListingWizard.tabLabelFeatures';
-  } else if (tab === POLICY) {
-    key = 'EditListingWizard.tabLabelPolicy';
-  } else if (tab === LOCATION) {
-    key = 'EditListingWizard.tabLabelLocation';
   } else if (tab === PRICING) {
     key = 'EditListingWizard.tabLabelPricing';
-  } else if (tab === AVAILABILITY) {
-    key = 'EditListingWizard.tabLabelAvailability';
   } else if (tab === PHOTOS) {
     key = 'EditListingWizard.tabLabelPhotos';
+  } else if (tab === LOCATION) {
+    key = 'EditListingWizard.tabLabelLocation';
   }
-
   return intl.formatMessage({ id: key });
 };
 
@@ -82,31 +65,20 @@ const tabLabel = (intl, tab) => {
  * @return true if tab / step is completed.
  */
 const tabCompleted = (tab, listing) => {
-  const {
-    availabilityPlan,
-    description,
-    geolocation,
-    price,
-    title,
-    publicData,
-  } = listing.attributes;
+  const { description, geolocation, price, title, publicData } = listing.attributes || {};
   const images = listing.images;
 
   switch (tab) {
     case DESCRIPTION:
+      // Para delivery basta con título y descripción (puedes añadir category si la haces obligatoria)
       return !!(description && title);
-    case FEATURES:
-      return !!(publicData && publicData.amenities);
-    case POLICY:
-      return !!(publicData && typeof publicData.rules !== 'undefined');
-    case LOCATION:
-      return !!(geolocation && publicData && publicData.location && publicData.location.address);
     case PRICING:
       return !!price;
-    case AVAILABILITY:
-      return !!availabilityPlan;
     case PHOTOS:
       return images && images.length > 0;
+    case LOCATION:
+      // En delivery usamos address en publicData.location
+      return !!(geolocation && publicData && publicData.location && publicData.location.address);
     default:
       return false;
   }
@@ -418,7 +390,8 @@ class EditListingWizard extends Component {
             ) : (
               <>
                 <p className={css.modalMessage}>
-                  <FormattedMessage id="EditListingWizard.payoutModalInfo" />
+                  EnCorto utiliza Stripe para procesar pagos de forma segura.
+                  Verifica tu cuenta con Stripe y añade tus datos de pago para recibir dinero.
                 </p>
                 <StripeConnectAccountForm
                   disabled={formDisabled}
@@ -538,7 +511,4 @@ EditListingWizard.propTypes = {
   intl: intlShape.isRequired,
 };
 
-export default compose(
-  withViewport,
-  injectIntl
-)(EditListingWizard);
+export default compose(withViewport, injectIntl)(EditListingWizard);

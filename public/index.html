@@ -8,7 +8,7 @@
 
     <!--!googleAnalyticsScript-->
 
-    <link rel="manifest" href="%PUBLIC_URL%/static/manifest.json">
+    <link rel="manifest" href="/static/manifest.json">
 
     <!-- Start Favicons from https://realfavicongenerator.net/ -->
     <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png">
@@ -77,7 +77,7 @@
       })(document);
     </script>
 
-    <link rel="stylesheet" href="%PUBLIC_URL%/static/reactDates.css" />
+    <link rel="stylesheet" href="/static/reactDates.css" />
   </head>
   <body>
     <div id="root"><!--!body--></div>
@@ -142,7 +142,7 @@
       mapbox-sdk.min.js is included from static folder for CSP purposes.
       We didn't bundle it to the main app since it would unnecessarily slow down initial rendering.
     -->
-    <script src="%PUBLIC_URL%/static/scripts/mapbox/mapbox-sdk.min.js"></script>
+    <script src="/static/scripts/mapbox/mapbox-sdk.min.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v1.0.0/mapbox-gl.css" rel="stylesheet" />
     <script src="https://api.mapbox.com/mapbox-gl-js/v1.0.0/mapbox-gl.js"></script>
     <script>

@@ -1,0 +1,204 @@
+import React, { useMemo, useState } from 'react';
+import { Form as FinalForm, Field } from 'react-final-form';
+import classNames from 'classnames';
+import { FormattedMessage } from '../../util/reactIntl';
+import { PrimaryButton, FieldTextInput, FieldSelect, FieldRadioButton } from '../../components';
+
+import LocationAutocompleteInput from '../../forms/LocationAutocompleteInput/LocationAutocompleteInput';
+import Map, { LOCATION_ENTITY_TYPE_LISTING } from '../../components/Map/Map';
+
+import css from './OrderPanel.module.css';
+
+const required = m => v => (v ? undefined : m);
+
+const OrderPanel = props => {
+  const { className, rootClassName, listing, onSubmit } = props;
+  const classes = classNames(rootClassName || css.root, className);
+
+  // --- NUEVO: estado para la geocodificación de entrega
+  const [deliveryOrigin, setDeliveryOrigin] = useState(null);
+
+  const geo = listing?.attributes?.geolocation || null;
+  const providerLocation = useMemo(() => {
+    if (!geo) return null;
+    return {
+      address: listing?.attributes?.publicData?.location?.address ?? '',
+      origin: { lat: geo.lat, lng: geo.lng },
+    };
+  }, [geo, listing]);
+
+  const price = listing?.attributes?.price;
+
+  const handleSubmit = values => {
+    onSubmit &&
+      onSubmit({
+        ...values,
+        deliveryOrigin, // puede ser null si eligieron "Recoger"
+      });
+  };
+
+  return (
+    <div className={classes}>
+      <h3 className={css.title}>
+        <FormattedMessage id="OrderPanel.title" defaultMessage="Ordenar" />
+      </h3>
+
+      <FinalForm
+        onSubmit={handleSubmit}
+        initialValues={{ quantity: 1, method: 'delivery' }}
+        render={({ handleSubmit, values, submitting, pristine, invalid }) => {
+          const isDelivery = values.method === 'delivery';
+
+          // Centro del mapa cuando es entrega: si ya hay selección, úsala; si no, centro en el listing
+          const deliveryMapCenter =
+            isDelivery && (deliveryOrigin || providerLocation?.origin);
+
+          return (
+            <form onSubmit={handleSubmit} className={css.form}>
+              {price ? (
+                <div className={css.priceRow}>
+                  <span className={css.priceLabel}>
+                    <FormattedMessage id="OrderPanel.price" defaultMessage="Precio" />
+                  </span>
+                  <span className={css.priceValue}>
+                    {price.amount / 100} {price.currency}
+                  </span>
+                </div>
+              ) : null}
+
+              {/* Cantidad */}
+              <Field
+                name="quantity"
+                component={FieldSelect}
+                label={<FormattedMessage id="OrderPanel.quantity" defaultMessage="Cantidad" />}
+                validate={required('Elige una cantidad')}
+              >
+                {[...Array(10)].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {i + 1}
+                  </option>
+                ))}
+              </Field>
+
+              {/* Método */}
+              <div className={css.methodBlock}>
+                <label className={css.groupLabel}>
+                  <FormattedMessage id="OrderPanel.method" defaultMessage="Método" />
+                </label>
+                <div className={css.radioRow}>
+                  <Field
+                    component={FieldRadioButton}
+                    name="method"
+                    id="delivery"
+                    value="delivery"
+                    label={<FormattedMessage id="OrderPanel.method.delivery" defaultMessage="A domicilio" />}
+                  />
+                  <Field
+                    component={FieldRadioButton}
+                    name="method"
+                    id="pickup"
+                    value="pickup"
+                    label={<FormattedMessage id="OrderPanel.method.pickup" defaultMessage="Recoger" />}
+                  />
+                </div>
+              </div>
+
+              {/* Bloque entrega */}
+              {isDelivery ? (
+                <div className={css.deliveryBlock}>
+                  <label className={css.groupLabel}>
+                    <FormattedMessage id="OrderPanel.deliveryAddress" defaultMessage="Dirección de entrega" />
+                  </label>
+
+                  <Field
+                    name="deliveryAddress"
+                    render={({ input, meta }) => (
+                      <LocationAutocompleteInput
+                        className={css.addressInput}
+                        input={input}
+                        meta={meta}
+                        placeholder="Escribe tu dirección"
+                        onChange={val => {
+                          // texto libre mientras escribe
+                          input.onChange(val?.selectedPlace?.address?.text || val?.input || '');
+                        }}
+                        onPlaceSelected={place => {
+                          // cuando selecciona un resultado, guardamos coordenadas para el mapa y para el submit
+                          const origin = place?.origin; // {lat, lng}
+                          if (origin) setDeliveryOrigin(origin);
+                          // opcional: rellena el texto final con el address formateado
+                          const text = place?.address?.text || place?.place?.text || '';
+                          input.onChange(text);
+                        }}
+                      />
+                    )}
+                  />
+
+                  {/* Mapa de confirmación de entrega */}
+                  {deliveryMapCenter ? (
+                    <div className={css.mapBox}>
+                      <Map
+                        center={deliveryMapCenter}
+                        zoom={14}
+                        useStaticMap
+                        markers={[
+                          {
+                            id: 'delivery-pin',
+                            entityType: LOCATION_ENTITY_TYPE_LISTING,
+                            location: deliveryMapCenter,
+                          },
+                        ]}
+                      />
+                    </div>
+                  ) : null}
+
+                  <Field
+                    name="deliveryNotes"
+                    component={FieldTextInput}
+                    type="text"
+                    label={<FormattedMessage id="OrderPanel.deliveryNotes" defaultMessage="Notas para el repartidor (opcional)" />}
+                    placeholder="Ej. Dejar en recepción"
+                  />
+                </div>
+              ) : (
+                // Bloque recoger
+                <div className={css.pickupBlock}>
+                  <label className={css.groupLabel}>
+                    <FormattedMessage id="OrderPanel.pickupAt" defaultMessage="Recoger en" />
+                  </label>
+                  <div className={css.pickupAddress}>
+                    {providerLocation?.address || (
+                      <FormattedMessage id="OrderPanel.noAddress" defaultMessage="Dirección no disponible" />
+                    )}
+                  </div>
+                  {providerLocation?.origin ? (
+                    <div className={css.mapBox}>
+                      <Map
+                        center={providerLocation.origin}
+                        zoom={14}
+                        useStaticMap
+                        markers={[
+                          {
+                            id: listing.id.uuid,
+                            entityType: LOCATION_ENTITY_TYPE_LISTING,
+                            location: providerLocation.origin,
+                          },
+                        ]}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              <PrimaryButton className={css.submit} type="submit" inProgress={submitting} disabled={pristine || invalid}>
+                <FormattedMessage id="OrderPanel.submit" defaultMessage="Ordenar" />
+              </PrimaryButton>
+            </form>
+          );
+        }}
+      />
+    </div>
+  );
+};
+
+export default OrderPanel;
