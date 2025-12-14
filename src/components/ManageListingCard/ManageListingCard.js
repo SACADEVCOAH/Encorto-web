@@ -183,11 +183,6 @@ export const ManageListingCardComponent = props => {
           event.preventDefault();
           event.stopPropagation();
 
-          // ManageListingCard contains links, buttons and elements that are working with routing.
-          // This card doesn't work if <a> or <button> is used to wrap events that are card 'clicks'.
-          //
-          // NOTE: It might be better to absolute-position those buttons over a card-links.
-          // (So, that they have no parent-child relationship - like '<a>bla<a>blaa</a></a>')
           history.push(createListingURL(routeConfiguration(), listing));
         }}
         onMouseOver={onOverListingLink}
@@ -202,12 +197,14 @@ export const ManageListingCardComponent = props => {
             sizes={renderSizes}
           />
         </div>
+
         <div className={classNames(css.menuOverlayWrapper, { [css.menuOverlayOpen]: isMenuOpen })}>
           <div className={classNames(css.menuOverlay)} />
           <div className={css.menuOverlayContent}>
             <FormattedMessage id="ManageListingCard.viewListing" />
           </div>
         </div>
+
         <div className={css.menubarWrapper}>
           <div className={css.menubarGradient} />
           <div className={css.menubar}>
@@ -247,6 +244,7 @@ export const ManageListingCardComponent = props => {
             </Menu>
           </div>
         </div>
+
         {isDraft ? (
           <React.Fragment>
             <div className={classNames({ [css.draftNoImage]: !firstImage })} />
@@ -266,6 +264,7 @@ export const ManageListingCardComponent = props => {
             </Overlay>
           </React.Fragment>
         ) : null}
+
         {isClosed ? (
           <Overlay
             message={intl.formatMessage(
@@ -288,6 +287,7 @@ export const ManageListingCardComponent = props => {
             </button>
           </Overlay>
         ) : null}
+
         {isPendingApproval ? (
           <Overlay
             message={intl.formatMessage(
@@ -296,6 +296,7 @@ export const ManageListingCardComponent = props => {
             )}
           />
         ) : null}
+
         {thisListingInProgress ? (
           <Overlay>
             <IconSpinner />
@@ -312,9 +313,9 @@ export const ManageListingCardComponent = props => {
               <div className={css.priceValue} title={priceTitle}>
                 {formattedPrice}
               </div>
-              <div className={css.perUnit}>
-                <FormattedMessage id={unitTranslationKey} />
-              </div>
+
+              {/* ✅ Precio unitario fijo */}
+              <div className={css.perUnit}>/ unidad</div>
             </React.Fragment>
           ) : (
             <div className={css.noPrice}>
@@ -399,7 +400,4 @@ ManageListingCardComponent.propTypes = {
   }).isRequired,
 };
 
-export default compose(
-  withRouter,
-  injectIntl
-)(ManageListingCardComponent);
+export default compose(withRouter, injectIntl)(ManageListingCardComponent);
