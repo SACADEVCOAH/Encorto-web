@@ -85,7 +85,7 @@ const Footer = props => {
               </div>
             </div>
 
-            {/* LINKS ABOUT/FAQ/HELP */}
+            {/* LINKS ABOUT/FAQ/HELP/CONTACTO */}
             <div className={css.infoLinks}>
               <ul className={css.list}>
                 <li className={css.listItem}>
@@ -93,23 +93,25 @@ const Footer = props => {
                     <FormattedMessage id="Footer.toAboutPage" />
                   </NamedLink>
                 </li>
-                <li className={css.listItem}>
-                  <NamedLink name="LandingPage" className={css.link}>
-                    <FormattedMessage id="Footer.toFAQPage" />
-                  </NamedLink>
-                </li>
-                <li className={css.listItem}>
-                  <NamedLink name="LandingPage" className={css.link}>
-                    <FormattedMessage id="Footer.toHelpPage" />
-                  </NamedLink>
-                </li>
+
                 <li className={css.listItem}>
                   <NamedLink
                     name="CMSPage"
-                    params={{ pageId: 'about' }}
-                    to={{ hash: '#contact' }}
+                    params={{ pageId: 'preguntas-frecuentes' }}
                     className={css.link}
                   >
+                    <FormattedMessage id="Footer.toFAQPage" />
+                  </NamedLink>
+                </li>
+
+                <li className={css.listItem}>
+                  <NamedLink name="CMSPage" params={{ pageId: 'ayuda' }} className={css.link}>
+                    <FormattedMessage id="Footer.toHelpPage" />
+                  </NamedLink>
+                </li>
+
+                <li className={css.listItem}>
+                  <NamedLink name="CMSPage" params={{ pageId: 'contacto' }} className={css.link}>
                     <FormattedMessage id="Footer.toContactPage" />
                   </NamedLink>
                 </li>
