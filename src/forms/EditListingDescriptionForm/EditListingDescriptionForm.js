@@ -184,3 +184,4 @@ EditListingDescriptionFormComponent.propTypes = {
 };
 
 export default compose(injectIntl)(EditListingDescriptionFormComponent);
+// TEST FOODTYPE
