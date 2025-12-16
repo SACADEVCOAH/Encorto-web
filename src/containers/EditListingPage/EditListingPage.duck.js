@@ -14,11 +14,44 @@ import { fetchCurrentUser } from '../../ducks/user.duck';
 
 const { UUID } = sdkTypes;
 
+/**
+ * ✅ Encorto: Persistir categoría y subcategorías en publicData
+ * OJO: Los IDs deben coincidir EXACTO con los IDs en Sharetribe Console.
+ */
+const CUSTOM_PUBLIC_DATA_KEYS = [
+  'category',
+  'foodType',
+  'hardwareType',
+  'marketType',
+  'serviceType',
+  // Estos dos IDs en tu console están con T mayúscula (según tus screenshots):
+  'Tipodepapeleria',
+  'Tipodeelectronica',
+];
+
+const pickDefined = (obj, keys) =>
+  keys.reduce((acc, key) => {
+    const val = obj?.[key];
+    if (val !== undefined && val !== null && val !== '') {
+      acc[key] = val;
+    }
+    return acc;
+  }, {});
+
+const withPublicData = data => {
+  const customPublicData = pickDefined(data, CUSTOM_PUBLIC_DATA_KEYS);
+  const publicData = { ...(data.publicData || {}), ...customPublicData };
+
+  // Quitamos los keys custom del root para NO mandar campos sueltos al API
+  const cleaned = omit({ ...data, publicData }, CUSTOM_PUBLIC_DATA_KEYS);
+
+  return cleaned;
+};
+
 // A helper function to filter away exception that matches start and end timestamps
 const removeException = (exception, calendar) => {
   const availabilityException = ensureAvailabilityException(exception.availabilityException);
   const { start, end } = availabilityException.attributes;
-  // When using time-based process, you might want to deal with local dates using monthIdString
   const monthId = monthIdStringInUTC(start);
   const monthData = calendar[monthId] || { exceptions: [] };
 
@@ -39,12 +72,8 @@ const removeException = (exception, calendar) => {
 // A helper function to add a new exception and remove previous one if there's a matching exception
 const addException = (exception, calendar) => {
   const { start } = ensureAvailabilityException(exception.availabilityException).attributes;
-  // When using time-based process, you might want to deal with local dates using monthIdString
   const monthId = monthIdStringInUTC(start);
 
-  // TODO: API doesn't support "availability_exceptions/update" yet
-  // So, when user wants to create an exception we need to ensure
-  // that possible existing exception is removed first.
   const cleanCalendar = removeException(exception, calendar);
   const monthData = cleanCalendar[monthId] || { exceptions: [] };
 
@@ -58,7 +87,6 @@ const addException = (exception, calendar) => {
 const updateException = (exception, calendar) => {
   const newAvailabilityException = ensureAvailabilityException(exception.availabilityException);
   const { start, end } = newAvailabilityException.attributes;
-  // When using time-based process, you might want to deal with local dates using monthIdString
   const monthId = monthIdStringInUTC(start);
   const monthData = calendar[monthId] || { exceptions: [] };
 
@@ -78,7 +106,6 @@ const updateException = (exception, calendar) => {
 
 // Update calendar data of given month
 const updateCalendarMonth = (state, monthId, data) => {
-  // Ensure that every month has array for bookings and exceptions
   const defaultMonthData = { bookings: [], exceptions: [] };
   return {
     ...state,
@@ -125,15 +152,18 @@ export const FETCH_BOOKINGS_SUCCESS = 'app/EditListingPage/FETCH_BOOKINGS_SUCCES
 export const FETCH_BOOKINGS_ERROR = 'app/EditListingPage/FETCH_BOOKINGS_ERROR';
 
 export const FETCH_EXCEPTIONS_REQUEST = 'app/EditListingPage/FETCH_AVAILABILITY_EXCEPTIONS_REQUEST';
-export const FETCH_EXCEPTIONS_SUCCESS = 'app/EditListingPage/FETCH_AVAILABILITY_EXCEPTIONS_SUCCESS';
+export const FETCH_EXCEPTIONS_SUCCESS =
+  'app/EditListingPage/FETCH_AVAILABILITY_EXCEPTIONS_SUCCESS';
 export const FETCH_EXCEPTIONS_ERROR = 'app/EditListingPage/FETCH_AVAILABILITY_EXCEPTIONS_ERROR';
 
 export const CREATE_EXCEPTION_REQUEST = 'app/EditListingPage/CREATE_AVAILABILITY_EXCEPTION_REQUEST';
-export const CREATE_EXCEPTION_SUCCESS = 'app/EditListingPage/CREATE_AVAILABILITY_EXCEPTION_SUCCESS';
+export const CREATE_EXCEPTION_SUCCESS =
+  'app/EditListingPage/CREATE_AVAILABILITY_EXCEPTION_SUCCESS';
 export const CREATE_EXCEPTION_ERROR = 'app/EditListingPage/CREATE_AVAILABILITY_EXCEPTION_ERROR';
 
 export const DELETE_EXCEPTION_REQUEST = 'app/EditListingPage/DELETE_AVAILABILITY_EXCEPTION_REQUEST';
-export const DELETE_EXCEPTION_SUCCESS = 'app/EditListingPage/DELETE_AVAILABILITY_EXCEPTION_SUCCESS';
+export const DELETE_EXCEPTION_SUCCESS =
+  'app/EditListingPage/DELETE_AVAILABILITY_EXCEPTION_SUCCESS';
 export const DELETE_EXCEPTION_ERROR = 'app/EditListingPage/DELETE_AVAILABILITY_EXCEPTION_ERROR';
 
 export const UPLOAD_IMAGE_REQUEST = 'app/EditListingPage/UPLOAD_IMAGE_REQUEST';
@@ -151,7 +181,6 @@ export const SAVE_PAYOUT_DETAILS_ERROR = 'app/EditListingPage/SAVE_PAYOUT_DETAIL
 // ================ Reducer ================ //
 
 const initialState = {
-  // Error instance placeholders for each endpoint
   createListingDraftError: null,
   publishingListing: null,
   publishListingError: null,
@@ -161,16 +190,7 @@ const initialState = {
   createListingDraftInProgress: false,
   submittedListingId: null,
   redirectToListing: false,
-  availabilityCalendar: {
-    // '2018-12': {
-    //   bookings: [],
-    //   exceptions: [],
-    //   fetchExceptionsError: null,
-    //   fetchExceptionsInProgress: false,
-    //   fetchBookingsError: null,
-    //   fetchBookingsInProgress: false,
-    // },
-  },
+  availabilityCalendar: {},
   images: {},
   imageOrder: [],
   removedImageIds: [],
@@ -313,9 +333,6 @@ export default function reducer(state = initialState, action = {}) {
     case DELETE_EXCEPTION_REQUEST: {
       const { id, seats, currentException } = payload.params;
 
-      // We first create temporary exception with given 'seats' count (the default after deletion).
-      // This makes it possible to show the UI element immediately with default color that matches
-      // with the availability plan.
       const exception = {
         id,
         inProgress: true,
@@ -340,7 +357,6 @@ export default function reducer(state = initialState, action = {}) {
     }
 
     case UPLOAD_IMAGE_REQUEST: {
-      // payload.params: { id: 'tempId', file }
       const images = {
         ...state.images,
         [payload.params.id]: { ...payload.params },
@@ -353,14 +369,12 @@ export default function reducer(state = initialState, action = {}) {
       };
     }
     case UPLOAD_IMAGE_SUCCESS: {
-      // payload.params: { id: 'tempId', imageId: 'some-real-id'}
       const { id, imageId } = payload;
       const file = state.images[id].file;
       const images = { ...state.images, [id]: { id, imageId, file } };
       return { ...state, images };
     }
     case UPLOAD_IMAGE_ERROR: {
-      // eslint-disable-next-line no-console
       const { id, error } = payload;
       const imageOrder = state.imageOrder.filter(i => i !== id);
       const images = omit(state.images, id);
@@ -372,14 +386,10 @@ export default function reducer(state = initialState, action = {}) {
     case REMOVE_LISTING_IMAGE: {
       const id = payload.imageId;
 
-      // Only mark the image removed if it hasn't been added to the
-      // listing already
       const removedImageIds = state.images[id]
         ? state.removedImageIds
         : state.removedImageIds.concat(id);
 
-      // Always remove from the draft since it might be a new image to
-      // an existing listing.
       const images = omit(state.images, id);
       const imageOrder = state.imageOrder.filter(i => i !== id);
 
@@ -397,8 +407,6 @@ export default function reducer(state = initialState, action = {}) {
       return state;
   }
 }
-
-// ================ Selectors ================ //
 
 // ================ Action creators ================ //
 
@@ -420,10 +428,6 @@ export const removeListingImage = imageId => ({
   type: REMOVE_LISTING_IMAGE,
   payload: { imageId },
 });
-
-// All the action creators that don't have the {Success, Error} suffix
-// take the params object that the corresponding SDK endpoint method
-// expects.
 
 // SDK method: ownListings.create
 export const createListingDraft = requestAction(CREATE_LISTING_DRAFT_REQUEST);
@@ -474,7 +478,7 @@ export const savePayoutDetailsRequest = requestAction(SAVE_PAYOUT_DETAILS_REQUES
 export const savePayoutDetailsSuccess = successAction(SAVE_PAYOUT_DETAILS_SUCCESS);
 export const savePayoutDetailsError = errorAction(SAVE_PAYOUT_DETAILS_ERROR);
 
-// ================ Thunk ================ //
+// ================ Thunks ================ //
 
 export function requestShowListing(actionPayload) {
   return (dispatch, getState, sdk) => {
@@ -482,9 +486,7 @@ export function requestShowListing(actionPayload) {
     return sdk.ownListings
       .show(actionPayload)
       .then(response => {
-        // EditListingPage fetches new listing data, which also needs to be added to global data
         dispatch(addMarketplaceEntities(response));
-        // In case of success, we'll clear state.EditListingPage (user will be redirected away)
         dispatch(showListingsSuccess(response));
         return response;
       })
@@ -494,7 +496,8 @@ export function requestShowListing(actionPayload) {
 
 export function requestCreateListingDraft(data) {
   return (dispatch, getState, sdk) => {
-    dispatch(createListingDraft(data));
+    const payload = withPublicData(data);
+    dispatch(createListingDraft(payload));
 
     const queryParams = {
       expand: true,
@@ -503,19 +506,14 @@ export function requestCreateListingDraft(data) {
     };
 
     return sdk.ownListings
-      .createDraft(data, queryParams)
+      .createDraft(payload, queryParams)
       .then(response => {
-        //const id = response.data.data.id.uuid;
-
-        // Add the created listing to the marketplace data
         dispatch(addMarketplaceEntities(response));
-
-        // Modify store to understand that we have created listing and can redirect away
         dispatch(createListingDraftSuccess(response));
         return response;
       })
       .catch(e => {
-        log.error(e, 'create-listing-draft-failed', { listingData: data });
+        log.error(e, 'create-listing-draft-failed', { listingData: payload });
         return dispatch(createListingDraftError(storableError(e)));
       });
   };
@@ -527,7 +525,6 @@ export const requestPublishListingDraft = listingId => (dispatch, getState, sdk)
   return sdk.ownListings
     .publishDraft({ id: listingId }, { expand: true })
     .then(response => {
-      // Add the created listing to the marketplace data
       dispatch(addMarketplaceEntities(response));
       dispatch(publishListingSuccess(response));
       return response;
@@ -537,7 +534,6 @@ export const requestPublishListingDraft = listingId => (dispatch, getState, sdk)
     });
 };
 
-// Images return imageId which we need to map with previously generated temporary id
 export function requestImageUpload(actionPayload) {
   return (dispatch, getState, sdk) => {
     const id = actionPayload.id;
@@ -551,7 +547,6 @@ export function requestImageUpload(actionPayload) {
 
 export const requestFetchBookings = fetchParams => (dispatch, getState, sdk) => {
   const { listingId, start, end, state } = fetchParams;
-  // When using time-based process, you might want to deal with local dates using monthIdString
   const monthId = monthIdStringInUTC(start);
 
   dispatch(fetchBookingsRequest({ ...fetchParams, monthId }));
@@ -562,14 +557,11 @@ export const requestFetchBookings = fetchParams => (dispatch, getState, sdk) => 
       const bookings = denormalisedResponseEntities(response);
       return dispatch(fetchBookingsSuccess({ data: { monthId, bookings } }));
     })
-    .catch(e => {
-      return dispatch(fetchBookingsError({ monthId, error: storableError(e) }));
-    });
+    .catch(e => dispatch(fetchBookingsError({ monthId, error: storableError(e) })));
 };
 
 export const requestFetchAvailabilityExceptions = fetchParams => (dispatch, getState, sdk) => {
   const { listingId, start, end } = fetchParams;
-  // When using time-based process, you might want to deal with local dates using monthIdString
   const monthId = monthIdStringInUTC(start);
 
   dispatch(fetchAvailabilityExceptionsRequest({ ...fetchParams, monthId }));
@@ -582,9 +574,9 @@ export const requestFetchAvailabilityExceptions = fetchParams => (dispatch, getS
       }));
       return dispatch(fetchAvailabilityExceptionsSuccess({ data: { monthId, exceptions } }));
     })
-    .catch(e => {
-      return dispatch(fetchAvailabilityExceptionsError({ monthId, error: storableError(e) }));
-    });
+    .catch(e =>
+      dispatch(fetchAvailabilityExceptionsError({ monthId, error: storableError(e) }))
+    );
 };
 
 export const requestCreateAvailabilityException = params => (dispatch, getState, sdk) => {
@@ -645,16 +637,16 @@ export const requestDeleteAvailabilityException = params => (dispatch, getState,
     });
 };
 
-// Update the given tab of the wizard with the given data. This saves
-// the data to the listing, and marks the tab updated so the UI can
-// display the state.
 export function requestUpdateListing(tab, data) {
   return (dispatch, getState, sdk) => {
-    dispatch(updateListing(data));
-    const { id } = data;
+    const payloadData = withPublicData(data);
+    dispatch(updateListing(payloadData));
+
+    const { id } = payloadData;
     let updateResponse;
+
     return sdk.ownListings
-      .update(data)
+      .update(payloadData)
       .then(response => {
         updateResponse = response;
         const payload = {
@@ -670,7 +662,7 @@ export function requestUpdateListing(tab, data) {
         return updateResponse;
       })
       .catch(e => {
-        log.error(e, 'update-listing-failed', { listingData: data });
+        log.error(e, 'update-listing-failed', { listingData: payloadData });
         return dispatch(updateListingError(storableError(e)));
       });
   };
@@ -688,14 +680,11 @@ export const savePayoutDetails = (values, isUpdateCall) => (dispatch, getState, 
     .catch(() => dispatch(savePayoutDetailsError()));
 };
 
-// loadData is run for each tab of the wizard. When editing an
-// existing listing, the listing must be fetched first.
 export const loadData = params => (dispatch, getState, sdk) => {
   dispatch(clearUpdatedTab());
   const { id, type } = params;
 
   if (type === 'new') {
-    // No need to listing data when creating a new listing
     return Promise.all([dispatch(fetchCurrentUser())])
       .then(response => {
         const currentUser = getState().user.currentUser;
