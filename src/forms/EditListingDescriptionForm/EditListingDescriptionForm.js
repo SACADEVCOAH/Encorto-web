@@ -56,10 +56,6 @@ const EditListingDescriptionFormComponent = props => (
         id: 'EditListingDescriptionForm.descriptionRequired',
       });
 
-      const foodTypeRequiredMessage =
-        intl.formatMessage({ id: 'EditListingDescriptionForm.foodTypeRequired' }) ||
-        'Selecciona el tipo de comida';
-
       const { updateListingError, createListingDraftError, showListingsError } = fetchErrors || {};
       const errorMessageUpdateListing = updateListingError ? (
         <p className={css.error}>
@@ -84,13 +80,17 @@ const EditListingDescriptionFormComponent = props => (
       const submitInProgress = updateInProgress;
       const submitDisabled = invalid || disabled || submitInProgress;
 
-      // 🔍 DEBUG: ver el valor real de la categoría seleccionada
-      console.log('CATEGORY VALUE:', values?.category);
-
-      // ✅ TEMPORAL: muestra el campo para posibles keys (ajusta después al valor real)
       const categoryKey = (values?.category || '').toLowerCase();
-      const isRestaurantsCategory =
-        categoryKey === 'restaurantes' || categoryKey === 'alimentos' || categoryKey === 'restaurants' || categoryKey === 'food';
+
+      const isRestaurants = categoryKey === 'restaurantes';
+      const isFerreterias = categoryKey === 'ferreterias';
+      const isSupermercados = categoryKey === 'supermercados';
+      const isServicios = categoryKey === 'servicios';
+      const isPapeleria = categoryKey === 'papeleria';
+      const isElectronica = categoryKey === 'electronica';
+
+      // Mensajes simples (si no tienes translations todavía)
+      const reqMsg = txt => txt;
 
       return (
         <Form className={classes} onSubmit={handleSubmit}>
@@ -127,12 +127,13 @@ const EditListingDescriptionFormComponent = props => (
             intl={intl}
           />
 
-          {isRestaurantsCategory ? (
+          {/* ✅ RESTAURANTES */}
+          {isRestaurants ? (
             <FieldSelect
               id="foodType"
               name="foodType"
               label="Tipo de comida"
-              validate={required(foodTypeRequiredMessage)}
+              validate={required(reqMsg('Selecciona el tipo de comida'))}
             >
               <option value="">Selecciona una opción</option>
               <option value="pollo_frito">Pollo frito</option>
@@ -141,6 +142,87 @@ const EditListingDescriptionFormComponent = props => (
               <option value="pizza">Pizza</option>
               <option value="sushi">Sushi</option>
               <option value="mariscos">Mariscos</option>
+              <option value="snacks">Snacks</option>
+            </FieldSelect>
+          ) : null}
+
+          {/* ✅ FERRETERÍAS (hardwareType) */}
+          {isFerreterias ? (
+            <FieldSelect
+              id="hardwareType"
+              name="hardwareType"
+              label="Tipo de ferretería"
+              validate={required(reqMsg('Selecciona el tipo de ferretería'))}
+            >
+              <option value="">Selecciona una opción</option>
+              <option value="general">General</option>
+              <option value="industrial">Industrial</option>
+              <option value="plomeria">Plomería</option>
+              <option value="electrica">Eléctrica</option>
+              <option value="construccion">Construcción</option>
+              <option value="pinturas">Pinturas</option>
+              <option value="aceros_y_perfiles">Aceros y Perfiles</option>
+            </FieldSelect>
+          ) : null}
+
+          {/* ✅ SUPERMERCADOS (marketType) */}
+          {isSupermercados ? (
+            <FieldSelect
+              id="marketType"
+              name="marketType"
+              label="Tipo de supermercado"
+              validate={required(reqMsg('Selecciona el tipo de supermercado'))}
+            >
+              <option value="">Selecciona una opción</option>
+              <option value="abarrotes">Abarrotes</option>
+              <option value="mini_super">Mini super</option>
+              <option value="carniceria">Carnicería</option>
+              <option value="fruteria">Frutería</option>
+              <option value="24_horas">24 horas</option>
+            </FieldSelect>
+          ) : null}
+
+          {/* ✅ SERVICIOS (serviceType) */}
+          {isServicios ? (
+            <FieldSelect
+              id="serviceType"
+              name="serviceType"
+              label="Tipo de servicio"
+              validate={required(reqMsg('Selecciona el tipo de servicio'))}
+            >
+              <option value="">Selecciona una opción</option>
+              <option value="envios_locales">Envíos locales</option>
+              <option value="recolecciones_locales">Recolecciones Locales</option>
+            </FieldSelect>
+          ) : null}
+
+          {/* ✅ PAPELERÍA (OJO: tu ID en Console es Tipodepapeleria) */}
+          {isPapeleria ? (
+            <FieldSelect
+              id="Tipodepapeleria"
+              name="Tipodepapeleria"
+              label="Tipo de papelería"
+              validate={required(reqMsg('Selecciona el tipo de papelería'))}
+            >
+              <option value="">Selecciona una opción</option>
+              <option value="escolar">Escolar</option>
+              <option value="oficina">Oficina</option>
+              <option value="impresiones">Impresiones</option>
+              <option value="arte">Arte</option>
+            </FieldSelect>
+          ) : null}
+
+          {/* ✅ ELECTRÓNICA (OJO: tu ID en Console es Tipodeelectronica) */}
+          {isElectronica ? (
+            <FieldSelect
+              id="Tipodeelectronica"
+              name="Tipodeelectronica"
+              label="Tipo de electrónica"
+              validate={required(reqMsg('Selecciona el tipo de electrónica'))}
+            >
+              <option value="">Selecciona una opción</option>
+              <option value="accesorios_celulares">Accesorios Celulares</option>
+              <option value="computacion">Computación</option>
             </FieldSelect>
           ) : null}
 
