@@ -42,9 +42,7 @@ const EditListingDescriptionFormComponent = props => (
       });
       const maxLengthMessage = intl.formatMessage(
         { id: 'EditListingDescriptionForm.maxLength' },
-        {
-          maxLength: TITLE_MAX_LENGTH,
-        }
+        { maxLength: TITLE_MAX_LENGTH }
       );
 
       const descriptionMessage = intl.formatMessage({
@@ -58,7 +56,6 @@ const EditListingDescriptionFormComponent = props => (
         id: 'EditListingDescriptionForm.descriptionRequired',
       });
 
-      // Validator message for foodType
       const foodTypeRequiredMessage =
         intl.formatMessage({ id: 'EditListingDescriptionForm.foodTypeRequired' }) ||
         'Selecciona el tipo de comida';
@@ -70,7 +67,6 @@ const EditListingDescriptionFormComponent = props => (
         </p>
       ) : null;
 
-      // This error happens only on first tab (of EditListingWizard)
       const errorMessageCreateListingDraft = createListingDraftError ? (
         <p className={css.error}>
           <FormattedMessage id="EditListingDescriptionForm.createListingDraftError" />
@@ -88,8 +84,13 @@ const EditListingDescriptionFormComponent = props => (
       const submitInProgress = updateInProgress;
       const submitDisabled = invalid || disabled || submitInProgress;
 
-      // ✅ Ajusta este key si tu categoría usa otro ID en el frontend
-      const isRestaurantsCategory = values?.category === 'restaurantes';
+      // 🔍 DEBUG: ver el valor real de la categoría seleccionada
+      console.log('CATEGORY VALUE:', values?.category);
+
+      // ✅ TEMPORAL: muestra el campo para posibles keys (ajusta después al valor real)
+      const categoryKey = (values?.category || '').toLowerCase();
+      const isRestaurantsCategory =
+        categoryKey === 'restaurantes' || categoryKey === 'alimentos' || categoryKey === 'restaurants' || categoryKey === 'food';
 
       return (
         <Form className={classes} onSubmit={handleSubmit}>
@@ -126,7 +127,6 @@ const EditListingDescriptionFormComponent = props => (
             intl={intl}
           />
 
-          {/* ✅ PASO 1: Dropdown de Tipo de comida (solo para Restaurantes) */}
           {isRestaurantsCategory ? (
             <FieldSelect
               id="foodType"
@@ -184,4 +184,3 @@ EditListingDescriptionFormComponent.propTypes = {
 };
 
 export default compose(injectIntl)(EditListingDescriptionFormComponent);
-// TEST FOODTYPE
