@@ -40,12 +40,14 @@ export const filters = [
     queryParamNames: ['pub_category'],
     config: {
       options: [
-        { key: 'alimentos', label: 'Alimentos' },
-        { key: 'super', label: 'Súper' },
-        { key: 'farmacia', label: 'Farmacia' },
-        { key: 'enviar', label: 'Enviar artículos' },
-        { key: 'motomandado', label: 'Moto Mandado' },
-      ],
+  { key: 'restaurantes', label: 'Restaurantes' },
+  { key: 'ferreterias', label: 'Ferreterías' },
+  { key: 'supermercados', label: 'Supermercados' },
+  { key: 'servicios', label: 'Servicios' },
+  { key: 'papeleria', label: 'Papelería' },
+  { key: 'electronica', label: 'Electrónica' },
+],
+
     },
   },
 
