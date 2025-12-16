@@ -31,11 +31,14 @@ export const currencyConfiguration = currency => {
     );
   }
 
+  // ✅ Fuerza MXN como "180.00 MXN" (no símbolo)
+  const currencyDisplay = currency === 'MXN' ? 'code' : 'symbol';
+
   return subUnitDivisors[currency] === 1
     ? {
         style: 'currency',
         currency,
-        currencyDisplay: 'symbol',
+        currencyDisplay,
         useGrouping: true,
         // If the currency is not using subunits (like JPY), remove fractions.
         minimumFractionDigits: 0,
@@ -44,7 +47,7 @@ export const currencyConfiguration = currency => {
     : {
         style: 'currency',
         currency,
-        currencyDisplay: 'symbol',
+        currencyDisplay,
         useGrouping: true,
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
