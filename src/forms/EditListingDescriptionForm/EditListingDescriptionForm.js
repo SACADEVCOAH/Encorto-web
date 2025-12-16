@@ -6,7 +6,7 @@ import { intlShape, injectIntl, FormattedMessage } from '../../util/reactIntl';
 import classNames from 'classnames';
 import { propTypes } from '../../util/types';
 import { maxLength, required, composeValidators } from '../../util/validators';
-import { Form, Button, FieldTextInput } from '../../components';
+import { Form, Button, FieldTextInput, FieldSelect } from '../../components';
 import CustomCategorySelectFieldMaybe from './CustomCategorySelectFieldMaybe';
 
 import css from './EditListingDescriptionForm.module.css';
@@ -30,6 +30,7 @@ const EditListingDescriptionFormComponent = props => (
         updated,
         updateInProgress,
         fetchErrors,
+        values,
       } = formRenderProps;
 
       const titleMessage = intl.formatMessage({ id: 'EditListingDescriptionForm.title' });
@@ -57,6 +58,11 @@ const EditListingDescriptionFormComponent = props => (
         id: 'EditListingDescriptionForm.descriptionRequired',
       });
 
+      // Validator message for foodType
+      const foodTypeRequiredMessage =
+        intl.formatMessage({ id: 'EditListingDescriptionForm.foodTypeRequired' }) ||
+        'Selecciona el tipo de comida';
+
       const { updateListingError, createListingDraftError, showListingsError } = fetchErrors || {};
       const errorMessageUpdateListing = updateListingError ? (
         <p className={css.error}>
@@ -82,11 +88,15 @@ const EditListingDescriptionFormComponent = props => (
       const submitInProgress = updateInProgress;
       const submitDisabled = invalid || disabled || submitInProgress;
 
+      // ✅ Ajusta este key si tu categoría usa otro ID en el frontend
+      const isRestaurantsCategory = values?.category === 'restaurantes';
+
       return (
         <Form className={classes} onSubmit={handleSubmit}>
           {errorMessageCreateListingDraft}
           {errorMessageUpdateListing}
           {errorMessageShowListing}
+
           <FieldTextInput
             id="title"
             name="title"
@@ -115,6 +125,24 @@ const EditListingDescriptionFormComponent = props => (
             categories={categories}
             intl={intl}
           />
+
+          {/* ✅ PASO 1: Dropdown de Tipo de comida (solo para Restaurantes) */}
+          {isRestaurantsCategory ? (
+            <FieldSelect
+              id="foodType"
+              name="foodType"
+              label="Tipo de comida"
+              validate={required(foodTypeRequiredMessage)}
+            >
+              <option value="">Selecciona una opción</option>
+              <option value="pollo_frito">Pollo frito</option>
+              <option value="tacos">Tacos</option>
+              <option value="hamburguesas">Hamburguesas</option>
+              <option value="pizza">Pizza</option>
+              <option value="sushi">Sushi</option>
+              <option value="mariscos">Mariscos</option>
+            </FieldSelect>
+          ) : null}
 
           <Button
             className={css.submitButton}
